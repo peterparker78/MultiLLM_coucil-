@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Advisory Board</title>
+<style>
+  :root, [data-theme="light"] {
+    --bg: #fbfbf9; --panel: #fff; --panel2: #f4f6f8; --line: #e3e7ea;
+    --txt: #2C3E50; --muted: #7F8C8D; --accent: #016AA3; --head: #015685;
+    --good: #38906C; --bad: #E74C3C; --warn: #C77B22;
+    --font: Georgia, "Iowan Old Style", Palatino, Garamond, serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, monospace; --shadow: 0 1px 3px rgba(44,62,80,.07);
+  }
+  [data-theme="dark"] {
+    --bg: #0f1115; --panel: #171a21; --panel2: #1e222b; --line: #2a2f3a;
+    --txt: #e6e8ec; --muted: #9aa3b2; --accent: #6ea8fe; --head: #9cc4ff;
+    --good: #45c98a; --bad: #e5826b; --warn: #d6b25e;
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, monospace; --shadow: none;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--txt); font-family: var(--font); font-size: 16px; line-height: 1.65; }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 26px 22px 90px; }
+  header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  h1 { font-size: 24px; margin: 0; color: var(--head); }
+  .sub { color: var(--muted); font-size: 13px; flex: 1 1 100%; margin-top: 2px; }
+  .badge { font-size: 12px; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--line); font-family: var(--mono); }
+  .badge.demo { color: var(--warn); } .badge.live { color: var(--good); }
+  .toggle { margin-left: auto; background: var(--panel2); color: var(--txt); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: 13px; font-family: var(--font); }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 20px; margin-top: 18px; box-shadow: var(--shadow); }
+  label { display: block; font-size: 12px; color: var(--muted); margin: 12px 0 5px; text-transform: uppercase; letter-spacing: .5px; font-family: var(--mono); }
+  textarea, input[type=text] { width: 100%; background: var(--panel2); color: var(--txt); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 15px; font-family: var(--font); }
+  textarea#question { min-height: 80px; }
+  .lens-row { display: flex; gap: 8px; align-items: center; margin-bottom: 7px; }
+  .lens-row .lens-name { flex: 0 0 200px; }
+  .lens-row .picker-provider { background: var(--panel2); color: var(--txt); border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px; font-size: 13px; font-family: var(--font); flex: 0 0 132px; }
+  .lens-row .picker-model { flex: 1; font-family: var(--mono); font-size: 13px; padding: 9px 11px; }
+  .brief-row { display: flex; align-items: center; gap: 10px; padding: 4px 0; font-size: 13px; }
+  input[type=file] { font-size: 13px; color: var(--muted); }
+  .lens-rm { cursor: pointer; color: var(--bad); font-size: 18px; padding: 0 4px; text-decoration: none; }
+  .lens-persona-toggle { cursor: pointer; color: var(--accent); font-size: 12px; font-family: var(--mono); white-space: nowrap; }
+  .lens-persona { width: 100%; min-height: 92px; font-size: 13px; margin: -2px 0 12px; font-family: var(--font); }
+  .addlens, button.run { margin-top: 10px; background: var(--accent); color: #fff; border: 0; font-weight: 600; padding: 9px 18px; border-radius: 8px; font-size: 14px; cursor: pointer; font-family: var(--font); }
+  .addlens { background: var(--panel2); color: var(--accent); border: 1px solid var(--line); }
+  button.run { padding: 11px 22px; font-size: 15px; }
+  button.run:disabled { opacity: .55; }
+  .modes { display: flex; gap: 18px; margin-top: 12px; }
+  .modes label, .verdict { text-transform: none; letter-spacing: 0; color: var(--txt); font-size: 14px; display: flex; align-items: center; gap: 7px; margin: 0; font-family: var(--font); }
+  .keys, .note { font-size: 12px; color: var(--muted); margin-top: 8px; font-family: var(--mono); }
+  .keys .ok { color: var(--good); } .keys .no { color: var(--bad); }
+  #status { display: none; align-items: center; gap: 11px; margin-top: 16px; color: var(--muted); }
+  #status.show { display: flex; }
+  .spinner { width: 16px; height: 16px; border: 2px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .err { color: var(--bad); margin-top: 14px; white-space: pre-wrap; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); margin: 0 0 14px; font-family: var(--mono); }
+  .hidden { display: none; }
+  .model-id { color: var(--muted); font-size: 12px; font-family: var(--mono); margin-bottom: 8px; }
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .tab { font-size: 13px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 7px; background: var(--panel2); color: var(--muted); cursor: pointer; }
+  .tab.active { color: var(--accent); border-color: var(--accent); }
+  .exports { display: flex; gap: 10px; align-items: center; }
+  .exports a { font-size: 13px; padding: 7px 14px; border: 1px solid var(--line); border-radius: 7px; color: var(--accent); text-decoration: none; cursor: pointer; font-family: var(--mono); }
+  .warn-claims { color: var(--bad); font-size: 13px; margin-bottom: 10px; padding: 8px 10px; border: 1px solid var(--bad); border-radius: 7px; }
+  table.t { width: 100%; border-collapse: collapse; font-size: 14px; table-layout: fixed; }
+  table.t th, table.t td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; word-break: break-word; vertical-align: top; }
+  table.t th { color: var(--muted); font-size: 12px; text-transform: uppercase; font-family: var(--mono); }
+  .verdict-verified { color: var(--good); } .verdict-unverified { color: var(--warn); } .verdict-contradicted { color: var(--bad); font-weight: 700; }
+  .dissent { border-left: 3px solid var(--warn); padding: 4px 0 4px 12px; margin: 8px 0; }
+  .dissent .who { color: var(--accent); font-size: 12px; font-family: var(--mono); }
+  .idea { border: 1px solid var(--line); border-radius: 9px; padding: 12px 14px; margin-bottom: 10px; background: var(--panel2); }
+  .verdicts { display: flex; gap: 16px; margin: 8px 0; }
+  .idea-comment { width: 100%; min-height: 36px; font-size: 14px; }
+  .tag { font-size: 11px; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+  .tag.minority { color: var(--bad); border-color: var(--bad); }
+  .md { overflow-wrap: anywhere; }
+  .md h2, .md h3 { color: var(--head); font-family: var(--font); text-transform: none; letter-spacing: 0; }
+  .md ul, .md ol { padding-left: 22px; } .md strong { font-weight: 700; }
+  .md table.md-table { border-collapse: collapse; margin: 12px 0; font-size: 14px; width: 100%; table-layout: fixed; }
+  .md table.md-table th, .md table.md-table td { border: 1px solid var(--line); padding: 7px 10px; text-align: left; }
+  .md table.md-table th { background: var(--panel2); color: var(--head); font-weight: 700; }
+  .hrow { display: flex; gap: 12px; padding: 9px 2px; border-bottom: 1px solid var(--line); cursor: pointer; }
+  .hrow:hover .hprompt { color: var(--accent); } .hrow .hprompt { flex: 1; }
+  .hrow .hmeta { font-size: 12px; color: var(--muted); font-family: var(--mono); }
+  #reviewStatus, #briefStatus { color: var(--good); font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Advisory Board</h1>
+    <span id="modeBadge" class="badge">…</span>
+    <a class="toggle" href="/" style="text-decoration:none">← Council</a>
+    <button class="toggle" id="themeToggle">☀ Light</button>
+    <span class="sub">expert lenses → idea ledger with dissent → board recommendation · optional briefing-doc grounding & web fact-check</span>
+  </header>
+
+  <div class="panel">
+    <label for="question">Question for the board</label>
+    <textarea id="question" placeholder="e.g. Is overall survival the right primary endpoint for our Phase 3 in this indication?"></textarea>
+
+    <label>Expert lenses (name · provider · model · 🌐 web)</label>
+    <div id="lenses"></div>
+    <button class="addlens" id="addLens">+ add lens</button>
+    <div id="modelsStatus" class="keys"></div>
+
+    <label for="briefFiles">Briefing documents (optional — shown to every lens; not for confidential/PHI on cloud seats)</label>
+    <input type="file" id="briefFiles" accept=".txt,.md,.docx,.pdf" multiple />
+    <div id="briefList"></div>
+
+    <div class="modes" style="margin-top:12px">
+      <label><input type="checkbox" id="groundToggle" /> 📚 Ground in literature (PubMed + Europe PMC)</label>
+      <label><input type="checkbox" id="verifyToggle" /> 🌐 Fact-check the recommendation (web)</label>
+      <label><input type="checkbox" id="composeToggle" /> 🧩 Find emergent composites (cross-lens)</label>
+    </div>
+    <div class="keys" id="keys"></div>
+
+    <button class="run" id="runBtn">Convene the board</button>
+    <div id="status"><div class="spinner"></div><span id="statusText"></span></div>
+    <div id="error" class="err"></div>
+  </div>
+
+  <div class="panel" id="historyPanel">
+    <div style="display:flex;align-items:center"><h2 style="margin:0;flex:1">Recent advisory runs</h2>
+      <a id="refreshHistory" style="cursor:pointer;color:var(--accent);font-size:13px;font-family:var(--mono)">refresh</a></div>
+    <div id="historyList" style="margin-top:12px"></div>
+  </div>
+
+  <div id="results" class="hidden">
+    <div class="panel"><div class="exports"><h2 style="margin:0;flex:1">Export</h2>
+      <a id="exMd">⬇ Markdown</a><a id="exDocx">⬇ Word (.docx)</a></div></div>
+
+    <div id="warnings"></div>
+
+    <div class="panel">
+      <h2>Recommendation</h2>
+      <div id="recWarn"></div>
+      <div class="md" id="recommendation"></div>
+      <div id="factcheck"></div>
+    </div>
+
+    <div class="panel hidden" id="compositePanel">
+      <h2>Emergent composites (cross-lens)</h2>
+      <div class="note" style="margin-bottom:10px">Combinations spanning multiple lenses that no single expert proposed whole — by design not traceable to one lens, and not fact-checked. Evaluate independently.</div>
+      <div id="composites"></div>
+    </div>
+
+    <div class="panel" id="evidencePanel"><h2>Evidence / references</h2><div id="evidence"></div></div>
+
+    <div class="panel" id="costPanel"><h2>Cost</h2><div id="cost"></div></div>
+
+    <div class="panel">
+      <h2>Idea ledger — your review</h2>
+      <div class="note" style="margin-bottom:14px">Rate each point and add notes. Single-source (one-expert) points first. Saved review is included in exports.</div>
+      <div id="ledger"></div>
+      <label for="overallComment">Overall reviewer comments</label>
+      <textarea id="overallComment" placeholder="Decision, next steps…"></textarea>
+      <div style="margin-top:12px;display:flex;align-items:center;gap:14px">
+        <button class="run" id="saveReview" style="margin-top:0">Save review</button>
+        <span id="reviewStatus"></span></div>
+    </div>
+
+    <div class="panel">
+      <h2>Expert memos</h2>
+      <div class="tabs" id="expertTabs"></div>
+      <div class="md" id="expertBody"></div>
+    </div>
+  </div>
+</div>
+
+<script src="/static/render.js"></script>
+<script src="/static/models.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+// esc + renderMarkdown come from /static/render.js
+
+function applyTheme(t) {
+  document.documentElement.setAttribute("data-theme", t);
+  $("themeToggle").textContent = t === "dark" ? "🌙 Dark" : "☀ Light";
+  localStorage.setItem("council-theme", t);
+}
+$("themeToggle").onclick = () => applyTheme(document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark");
+applyTheme(localStorage.getItem("council-theme") || "light");
+
+// lens editor
+let lensRows = [];
+function renderLenses() {
+  $("lenses").innerHTML = lensRows.map((l, i) => `
+    <div class="lens-row" data-i="${i}">
+      <input type="text" class="lens-name" value="${esc(l.name)}" placeholder="Lens name" />
+      ${pickerHtml("lens", l)}
+      ${l.provider === "openrouter" ? `<label class="verdict"><input type="checkbox" class="lens-web" ${l.online ? "checked" : ""}> 🌐</label>` : ""}
+      <a class="lens-persona-toggle" data-i="${i}">persona ▸</a>
+      <a class="lens-rm">×</a>
+    </div>
+    <textarea class="lens-persona hidden" data-i="${i}" placeholder="Expert persona / system prompt">${esc(l.system || "")}</textarea>`).join("");
+  $("lenses").querySelectorAll(".lens-row").forEach((row) => {
+    const i = +row.dataset.i;
+    row.querySelector(".lens-name").oninput = (e) => (lensRows[i].name = e.target.value);
+    bindPicker(row, "lens", lensRows[i], renderLenses);
+    const web = row.querySelector(".lens-web");
+    if (web) web.onchange = (e) => (lensRows[i].online = e.target.checked);
+    row.querySelector(".lens-rm").onclick = () => { lensRows.splice(i, 1); renderLenses(); };
+  });
+  $("lenses").querySelectorAll(".lens-persona").forEach((ta) => {
+    ta.oninput = (e) => (lensRows[+ta.dataset.i].system = e.target.value);
+  });
+  $("lenses").querySelectorAll(".lens-persona-toggle").forEach((tog) => {
+    tog.onclick = () => {
+      const ta = $("lenses").querySelector(`.lens-persona[data-i="${tog.dataset.i}"]`);
+      const hidden = ta.classList.toggle("hidden");
+      tog.textContent = hidden ? "persona ▸" : "persona ▾";
+    };
+  });
+}
+$("addLens").onclick = () => { lensRows.push({ name: "Expert", provider: "openrouter", model: "", online: false }); renderLenses(); };
+
+// briefing documents (several; combined server-side under one budget)
+let briefs = [];
+function renderBriefs() {
+  $("briefList").innerHTML = briefRowsHtml(briefs);
+  $("briefList").querySelectorAll(".brief-rm").forEach((a) => (a.onclick = () => { briefs.splice(+a.dataset.i, 1); renderBriefs(); }));
+}
+$("briefFiles").onchange = async (e) => {
+  if (!e.target.files.length) return;
+  $("error").textContent = "";
+  try {
+    const r = await uploadBriefs(e.target.files);
+    briefs.push(...(r.briefs || []));
+    if ((r.errors || []).length) $("error").textContent = "Could not read: " + r.errors.join("; ");
+    renderBriefs();
+  } catch (err) { $("error").textContent = "Failed to read briefing document(s): " + err; }
+  e.target.value = "";
+};
+
+async function loadConfig() {
+  const c = await (await fetch("/api/advisory/config")).json();
+  lensRows = c.lenses.map((l) => ({ name: l.name, ...providerOf(l.model), system: l.system || "" }));
+  renderLenses();
+  loadModels($("modelsStatus")).then(renderLenses);  // strict selects need the lists
+  const b = $("modeBadge");
+  b.textContent = c.demo ? "DEMO — no keys" : "LIVE";
+  b.className = "badge " + (c.demo ? "demo" : "live");
+  if (!c.demo) $("keys").innerHTML = "Keys: " + Object.entries(c.keys).map(([k, v]) => `<span class="${v ? "ok" : "no"}">${v ? "✓" : "✗"} ${k}</span>`).join(" &nbsp; ");
+}
+
+function renderCost(cost) {
+  if (!cost || !cost.per_model || !cost.per_model.length) { $("costPanel").classList.add("hidden"); return; }
+  $("costPanel").classList.remove("hidden");
+  const partial = cost.cost_partial ? " (partial)" : "";
+  $("cost").innerHTML = `<table class="t"><tr><th>Model</th><th>Calls</th><th>Tokens</th><th>Cost</th></tr>
+    ${cost.per_model.map((r) => `<tr><td class="model-id" style="margin:0">${r.model}</td><td>${r.calls}</td><td>${(r.prompt_tokens + r.completion_tokens).toLocaleString()}</td><td>${r.cost_usd != null ? "$" + r.cost_usd.toFixed(4) : "free/n.a."}</td></tr>`).join("")}
+    <tr><td><strong>Total</strong></td><td></td><td><strong>${cost.total_tokens.toLocaleString()}</strong></td><td><strong>$${cost.total_cost_usd.toFixed(4)}${partial}</strong></td></tr></table>`;
+}
+
+function renderLedger(data, jobId) {
+  const ledger = (data.ledger || []).slice().sort((a, b) => a.is_unique === b.is_unique ? b.merit - a.merit : (a.is_unique ? -1 : 1));
+  const review = data.review || { ideas: {}, overall: "" }; const ir = review.ideas || {};
+  $("ledger").innerHTML = ledger.map((c) => {
+    const r = ir[c.id] || {};
+    const who = [...new Set(c.source_labels || [])].join(", ");
+    const tag = c.is_unique ? '<span class="tag minority">single-source</span>' : '<span class="tag">shared</span>';
+    const radio = (v, l) => `<label class="verdict"><input type="radio" name="v_${c.id}" value="${v}" ${r.verdict === v ? "checked" : ""}> ${l}</label>`;
+    return `<div class="idea" data-id="${c.id}"><div class="model-id" style="margin:0">${tag} merit ${c.merit} · ${esc(who)}</div>
+      <div>${esc(c.summary)}</div><div class="verdicts">${radio("adopt", "Adopt")}${radio("explore", "Explore")}${radio("reject", "Reject")}</div>
+      <textarea class="idea-comment" placeholder="Comment (optional)">${esc(r.comment || "")}</textarea></div>`;
+  }).join("");
+  $("overallComment").value = review.overall || ""; $("reviewStatus").textContent = "";
+  $("saveReview").onclick = () => saveReview(jobId);
+}
+async function saveReview(jobId) {
+  const ideas = {};
+  document.querySelectorAll("#ledger .idea").forEach((d) => {
+    const v = d.querySelector("input[type=radio]:checked"), c = d.querySelector(".idea-comment").value.trim();
+    if (v || c) ideas[d.dataset.id] = { verdict: v ? v.value : "", comment: c };
+  });
+  $("reviewStatus").textContent = "Saving…";
+  const res = await fetch(`/api/run/${jobId}/review`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ overall: $("overallComment").value.trim(), ideas }) });
+  $("reviewStatus").textContent = res.ok ? "Saved ✓ — included in exports" : "Save failed";
+}
+
+function render(data, jobId) {
+  $("exMd").onclick = () => (window.location = `/api/run/${jobId}/export.md`);
+  $("exDocx").onclick = () => (window.location = `/api/run/${jobId}/export.docx`);
+
+  const warns = data.warnings || [];
+  $("warnings").innerHTML = warns.length
+    ? `<div class="panel" style="border-color:var(--bad)">${warns.map((w) => `<div class="warn-claims" style="margin:0">⚠ ${esc(w)}</div>`).join("")}</div>` : "";
+
+  const unsup = data.unsupported_claims || [];
+  $("recWarn").innerHTML = unsup.length ? `<div class="warn-claims">⚠ Not traceable to any expert: ${unsup.map(esc).join("; ")}</div>` : "";
+  $("recommendation").innerHTML = renderMarkdown(data.recommendation);
+  const ver = data.verification || [];
+  $("factcheck").innerHTML = ver.length ? `<div class="md"><strong>Fact-check</strong></div><table class="t"><tr><th>Claim</th><th>Verdict</th><th>Note</th></tr>
+    ${ver.map((v) => `<tr><td>${esc(v.claim)}</td><td class="verdict-${esc(v.verdict)}">${esc(v.verdict)}</td><td class="model-id" style="margin:0">${esc(v.note)}</td></tr>`).join("")}</table>` : "";
+
+  const comp = data.composites || [];
+  if (comp.length) {
+    $("compositePanel").classList.remove("hidden");
+    $("composites").innerHTML = comp.map((c) =>
+      `<div style="margin-bottom:12px"><span class="tag">${esc(c.verdict || c.value || "")}</span> ${esc(c.summary)}
+       <div class="model-id" style="margin:4px 0 0">combines: ${esc((c.source_models || []).join(", "))}${c.judge_note ? " · judge: " + esc(c.judge_note) : ""}</div></div>`).join("");
+  } else $("compositePanel").classList.add("hidden");
+
+  const ev = data.evidence || [];
+  if (ev.length) {
+    $("evidencePanel").classList.remove("hidden");
+    $("evidence").innerHTML = `<div class="note" style="margin-bottom:10px">Search: ${esc(data.evidence_query || "")}</div>` +
+      ev.map((e, i) => `<div style="margin-bottom:9px"><strong>${i + 1}.</strong> ${esc(e.title)} — <span class="model-id" style="margin:0">${esc(e.authors)}. ${esc(e.journal)} ${esc(e.year)}${e.id ? " · PMID " + esc(e.id) : ""}</span>${e.url ? ` · <a href="${esc(e.url)}" target="_blank" rel="noopener">link</a>` : ""}</div>`).join("");
+  } else $("evidencePanel").classList.add("hidden");
+
+  renderCost(data.cost);
+  renderLedger(data, jobId);
+
+  const experts = data.experts || [];
+  const tabs = $("expertTabs");
+  tabs.innerHTML = experts.map((m, i) => `<div class="tab${i === 0 ? " active" : ""}" data-i="${i}">${esc(m.label)}${m.status && m.status !== "ok" ? " ⚠" : ""}</div>`).join("");
+  const show = (i) => {
+    const m = experts[i];
+    $("expertBody").innerHTML = `<div class="model-id">${esc(m.model)}${m.status && m.status !== "ok" ? " · " + m.status : ""}</div>` + (m.ok ? renderMarkdown(m.text) : `<p style="color:var(--bad)">FAILED: ${esc(m.error)}</p>`);
+    [...tabs.children].forEach((t, j) => t.classList.toggle("active", i === j));
+  };
+  [...tabs.children].forEach((t) => (t.onclick = () => show(+t.dataset.i)));
+  if (experts.length) show(0);
+  $("results").classList.remove("hidden");
+}
+
+async function poll(id) {
+  while (true) {
+    const job = await (await fetch(`/api/run/${id}`)).json();
+    if (job.status === "running") { $("statusText").textContent = job.label || "working…"; await new Promise((r) => setTimeout(r, 1000)); continue; }
+    return job;
+  }
+}
+
+async function loadHistory() {
+  try {
+    const { runs } = await (await fetch("/api/advisory/runs")).json();
+    if (!runs.length) { $("historyList").innerHTML = '<div class="note">No saved runs yet.</div>'; return; }
+    $("historyList").innerHTML = runs.map((r) => {
+      const date = new Date(r.mtime * 1000).toLocaleString();
+      const cost = r.cost_usd != null ? ` · $${r.cost_usd.toFixed(2)}` : "";
+      return `<div class="hrow" data-id="${r.id}"><span class="hprompt">${esc(r.question.slice(0, 100)) || "(untitled)"}</span>
+        <span class="hmeta">${r.lenses.length} lenses${cost}${r.reviewed ? " · reviewed ✓" : ""} · ${date}</span></div>`;
+    }).join("");
+    document.querySelectorAll("#historyList .hrow").forEach((el) => (el.onclick = () => openRun(el.dataset.id)));
+  } catch (e) { $("historyList").innerHTML = '<div class="err">Could not load history.</div>'; }
+}
+async function openRun(id) {
+  const { result } = await (await fetch(`/api/advisory/runs/${id}`)).json();
+  render(result, id); $("results").scrollIntoView({ behavior: "smooth" });
+}
+
+async function run() {
+  $("error").textContent = ""; $("results").classList.add("hidden");
+  const question = $("question").value.trim();
+  if (!question) { $("error").textContent = "Enter a question first."; return; }
+  const lenses = lensRows.filter((l) => specOf(l)).map((l) =>
+    ({ name: l.name.trim() || "Expert", model: specOf(l), system: (l.system || "").trim() }));
+  if (!lenses.length) { $("error").textContent = "Add at least one lens with a model."; return; }
+  const problem = lensRows.map((l) => pickerProblem(l, l.name.trim() || "Lens")).find(Boolean);
+  if (problem) { $("error").textContent = problem; return; }
+
+  $("runBtn").disabled = true; $("status").classList.add("show"); $("statusText").textContent = "Starting…";
+  try {
+    const { id } = await (await fetch("/api/advisory/run", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ question, lenses, briefs: briefs.map((b) => ({ name: b.name, text: b.text })), verify: $("verifyToggle").checked, ground: $("groundToggle").checked, compose: $("composeToggle").checked }) })).json();
+    const job = await poll(id);
+    if (job.status === "error") $("error").textContent = "Run failed — " + job.error;
+    else { render(job.result, id); loadHistory(); }
+  } catch (e) { $("error").textContent = "Request failed: " + e; }
+  finally { $("runBtn").disabled = false; $("status").classList.remove("show"); }
+}
+
+$("runBtn").onclick = run;
+$("refreshHistory").onclick = loadHistory;
+loadConfig();
+loadHistory();
+</script>
+</body>
+</html>

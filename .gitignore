@@ -1,0 +1,21 @@
+# Local Claude Code settings — contains local permission allowlist (and a
+# revoked key); never commit.
+.claude/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+
+# Generated run records (data, not source)
+council_runs/
+advisory_runs/
+
+# Generated documents (regenerable from the .md sources)
+*.docx
+
+# OS
+.DS_Store

@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>LLM Council</title>
+<style>
+  /* ---- Light "document" theme (house palette) ---- */
+  :root, [data-theme="light"] {
+    --bg: #fbfbf9; --panel: #ffffff; --panel2: #f4f6f8; --line: #e3e7ea;
+    --txt: #2C3E50; --muted: #7F8C8D; --accent: #016AA3; --head: #015685;
+    --good: #38906C; --bad: #E74C3C; --warn: #C77B22;
+    --font: Georgia, "Iowan Old Style", "Palatino Linotype", Palatino, Garamond, serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+    --shadow: 0 1px 3px rgba(44,62,80,.07), 0 1px 2px rgba(44,62,80,.04);
+  }
+  /* ---- Dark "refined" theme ---- */
+  [data-theme="dark"] {
+    --bg: #0f1115; --panel: #171a21; --panel2: #1e222b; --line: #2a2f3a;
+    --txt: #e6e8ec; --muted: #9aa3b2; --accent: #6ea8fe; --head: #9cc4ff;
+    --good: #45c98a; --bad: #e5826b; --warn: #d6b25e;
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+    --shadow: none;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--txt); font-family: var(--font);
+         font-size: 16px; line-height: 1.65; transition: background .2s, color .2s; }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 26px 22px 90px; }
+  header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  h1 { font-size: 24px; margin: 0; color: var(--head); letter-spacing: .2px; }
+  .sub { color: var(--muted); font-size: 13px; flex: 1 1 100%; margin-top: 2px; }
+  .badge { font-size: 12px; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--line); font-family: var(--mono); }
+  .badge.demo { color: var(--warn); } .badge.live { color: var(--good); }
+  .toggle { margin-left: auto; background: var(--panel2); color: var(--txt); border: 1px solid var(--line);
+            border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: 13px; font-family: var(--font); }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 20px; margin-top: 18px; box-shadow: var(--shadow); }
+  label { display: block; font-size: 12px; color: var(--muted); margin: 12px 0 5px; text-transform: uppercase; letter-spacing: .5px; font-family: var(--mono); }
+  textarea, input[type=text] { width: 100%; background: var(--panel2); color: var(--txt); border: 1px solid var(--line);
+    border-radius: 8px; padding: 11px 13px; font-size: 15px; font-family: var(--font); resize: vertical; }
+  textarea#prompt { min-height: 86px; }
+  .seat-row select, .picker-provider { background: var(--panel2); color: var(--txt); border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px; font-size: 13px; font-family: var(--font); flex: 0 0 132px; }
+  .seat-row .picker-model { flex: 1; font-family: var(--mono); font-size: 13px; padding: 9px 11px; }
+  .lens-rm { cursor: pointer; color: var(--bad); font-size: 18px; padding: 0 4px; text-decoration: none; }
+  .addlens { margin-top: 8px; background: var(--panel2); color: var(--accent); border: 1px solid var(--line); font-weight: 600; padding: 7px 14px; border-radius: 8px; font-size: 13px; cursor: pointer; font-family: var(--font); }
+  .brief-row { display: flex; align-items: center; gap: 10px; padding: 4px 0; font-size: 13px; }
+  input[type=file] { font-size: 13px; color: var(--muted); }
+  .row { display: flex; gap: 18px; flex-wrap: wrap; }
+  .row > div { flex: 1; min-width: 240px; }
+  .modes { display: flex; gap: 18px; margin-top: 12px; }
+  .modes label { text-transform: none; letter-spacing: 0; color: var(--txt); font-size: 14px; display: flex; align-items: center; gap: 7px; margin: 0; font-family: var(--font); }
+  button.run { margin-top: 16px; background: var(--accent); color: #fff; border: 0; font-weight: 600;
+    padding: 11px 22px; border-radius: 8px; font-size: 15px; cursor: pointer; font-family: var(--font); }
+  button.run:disabled { opacity: .55; cursor: default; }
+  .keys { font-size: 12px; color: var(--muted); margin-top: 10px; font-family: var(--mono); }
+  .keys .ok { color: var(--good); } .keys .no { color: var(--bad); }
+  #status { display: none; align-items: center; gap: 11px; margin-top: 16px; color: var(--muted); }
+  #status.show { display: flex; }
+  .spinner { width: 16px; height: 16px; border: 2px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .err { color: var(--bad); margin-top: 14px; white-space: pre-wrap; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); margin: 0 0 14px; font-family: var(--mono); }
+  table.survival { width: 100%; border-collapse: collapse; font-size: 14px; }
+  table.survival th, table.survival td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); }
+  table.survival th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; font-family: var(--mono); }
+  .bar { height: 8px; border-radius: 4px; background: var(--panel2); overflow: hidden; margin-top: 5px; }
+  .bar > span { display: block; height: 100%; }
+  .pct { font-variant-numeric: tabular-nums; font-family: var(--mono); }
+  .gap-good { color: var(--good); } .gap-bad { color: var(--bad); }
+  .note { font-size: 12px; color: var(--muted); margin-top: 10px; }
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .tab { font-size: 13px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 7px; background: var(--panel2); color: var(--muted); cursor: pointer; font-family: var(--mono); }
+  .tab.active { color: var(--accent); border-color: var(--accent); }
+  .synth-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
+  @media (min-width: 860px) { .synth-grid.two { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+  .synth { min-width: 0; }  /* allow the column to shrink so wide tables/words wrap instead of overflowing */
+  .synth h3 { font-size: 15px; margin: 0 0 8px; color: var(--head); }
+  .tag { font-size: 11px; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); margin-left: 6px; font-family: var(--mono); }
+  .model-id { color: var(--muted); font-size: 12px; font-family: var(--mono); margin-bottom: 8px; }
+  .hidden { display: none; }
+  .exports { display: flex; gap: 10px; align-items: center; }
+  .exports a { font-size: 13px; padding: 7px 14px; border: 1px solid var(--line); border-radius: 7px; color: var(--accent); text-decoration: none; cursor: pointer; font-family: var(--mono); }
+  .exports a:hover { border-color: var(--accent); }
+  /* rendered markdown */
+  .md { font-size: 15.5px; overflow-wrap: anywhere; }
+  .md > :first-child { margin-top: 0; }
+  .md h1 { font-size: 21px; color: var(--head); margin: 18px 0 8px; }
+  .md h2 { font-size: 18px; color: var(--head); margin: 18px 0 8px; text-transform: none; letter-spacing: 0; font-family: var(--font); }
+  .md h3 { font-size: 16px; color: var(--head); margin: 14px 0 6px; }
+  .md p { margin: 9px 0; }
+  .md ul, .md ol { margin: 8px 0; padding-left: 22px; }
+  .md li { margin: 4px 0; }
+  .md strong { color: var(--txt); font-weight: 700; }
+  .md code { background: var(--panel2); padding: 1px 5px; border-radius: 4px; font-family: var(--mono); font-size: .9em; }
+  .md pre.code { background: var(--panel2); padding: 12px; border-radius: 8px; overflow-x: auto; font-family: var(--mono); font-size: 13px; }
+  .md blockquote { border-left: 3px solid var(--line); margin: 8px 0; padding: 2px 0 2px 14px; color: var(--muted); }
+  .md hr { border: 0; border-top: 1px solid var(--line); margin: 16px 0; }
+  .md a { color: var(--accent); }
+  .md table.md-table { border-collapse: collapse; margin: 12px 0; font-size: 14px; width: 100%; table-layout: fixed; }
+  .md table.md-table th, .md table.md-table td { border: 1px solid var(--line); padding: 7px 10px; text-align: left; }
+  .md table.md-table th { background: var(--panel2); color: var(--head); font-weight: 700; }
+  /* idea-ledger review */
+  .idea { border: 1px solid var(--line); border-radius: 9px; padding: 12px 14px; margin-bottom: 10px; background: var(--panel2); }
+  .idea-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .idea-text { margin-bottom: 9px; }
+  .verdicts { display: flex; gap: 16px; margin-bottom: 9px; flex-wrap: wrap; }
+  .verdict { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--txt); cursor: pointer; }
+  .idea-comment { min-height: 36px; font-size: 14px; }
+  .tag.minority { color: var(--bad); border-color: var(--bad); }
+  #reviewStatus { color: var(--good); }
+  /* run history */
+  .hrow { display: flex; gap: 12px; align-items: baseline; padding: 9px 2px; border-bottom: 1px solid var(--line); cursor: pointer; }
+  .hrow:last-child { border-bottom: 0; }
+  .hrow:hover .hprompt { color: var(--accent); }
+  .hrow .hprompt { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hrow .hmeta { font-size: 12px; color: var(--muted); font-family: var(--mono); white-space: nowrap; }
+  #refreshHistory { cursor: pointer; color: var(--accent); font-size: 13px; font-family: var(--mono); }
+  .warn-claims { color: var(--bad); font-size: 13px; margin-bottom: 10px; padding: 8px 10px; border: 1px solid var(--bad); border-radius: 7px; }
+  .caution { font-size: 12px; color: var(--muted); font-style: italic; margin-bottom: 8px; }
+  .seat-toggles { margin-top: 8px; }
+  .seat-row { display: flex; align-items: center; gap: 10px; padding: 4px 0; font-size: 13px; }
+  .factcheck { margin-top: 12px; }
+  /* fact-check tables sit in a narrow synthesis column and hold long URLs — keep them inside the column */
+  .factcheck table.survival { table-layout: fixed; }
+  .factcheck table.survival td, .factcheck table.survival th { overflow-wrap: anywhere; word-break: break-word; vertical-align: top; }
+  .factcheck table.survival .model-id { white-space: normal; }
+  .verdict-verified { color: var(--good); }
+  .verdict-unverified { color: var(--warn); }
+  .verdict-contradicted { color: var(--bad); font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>LLM Council</h1>
+    <span id="modeBadge" class="badge">…</span>
+    <a class="toggle" href="/advisory" style="text-decoration:none">Advisory board →</a>
+    <button class="toggle" id="themeToggle">☀ Light</button>
+    <span class="sub">independent answers → idea ledger → baseline vs diversity-preserving synthesis → idea-survival</span>
+  </header>
+
+  <div class="panel">
+    <label for="prompt">Prompt / challenge</label>
+    <textarea id="prompt" placeholder="e.g. Propose unconventional, rarely-tried mechanisms to improve patient retention in a decentralized clinical trial."></textarea>
+    <label for="briefFiles">Briefing documents (optional — shown to every seat; not for confidential/PHI on cloud seats)</label>
+    <input type="file" id="briefFiles" accept=".txt,.md,.docx,.pdf" multiple />
+    <div id="briefList"></div>
+    <div class="row">
+      <div>
+        <label>Council seats (provider · model · 🌐 web)</label>
+        <div id="seatRows"></div>
+        <button class="addlens" id="addSeat">+ add seat</button>
+        <div id="modelsStatus" class="keys"></div>
+      </div>
+      <div>
+        <label>Chairman (synthesis)</label>
+        <div id="chairmanRow"></div>
+        <div class="modes">
+          <label><input type="checkbox" id="m-baseline" checked /> Baseline (Karpathy)</label>
+          <label><input type="checkbox" id="m-preserving" checked /> Preserving</label>
+        </div>
+        <div class="modes" style="margin-top:8px">
+          <label><input type="checkbox" id="verifyToggle" /> 🌐 Fact-check syntheses (web verifier)</label>
+          <label><input type="checkbox" id="composeToggle" /> 🧩 Find emergent composites (cross-model)</label>
+        </div>
+        <div class="keys" id="keys"></div>
+      </div>
+    </div>
+    <button class="run" id="runBtn">Convene council</button>
+    <div id="status"><div class="spinner"></div><span id="statusText"></span></div>
+    <div id="error" class="err"></div>
+  </div>
+
+  <div class="panel" id="historyPanel">
+    <div style="display:flex;align-items:center">
+      <h2 style="margin:0;flex:1">Recent runs</h2>
+      <a id="refreshHistory">refresh</a>
+    </div>
+    <div id="historyList" style="margin-top:12px"></div>
+  </div>
+
+  <div id="results" class="hidden">
+    <div class="panel">
+      <div class="exports">
+        <h2 style="margin:0;flex:1">Export</h2>
+        <a id="exMd">⬇ Markdown</a>
+        <a id="exDocx">⬇ Word (.docx)</a>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Idea-survival — the groupthink metric</h2>
+      <div id="survival"></div>
+      <div class="note">Lower gap = less groupthink: minority (single-model) ideas retained nearer to consensus ideas.</div>
+    </div>
+
+    <div class="panel" id="costPanel">
+      <h2>Cost</h2>
+      <div id="cost"></div>
+    </div>
+
+    <div class="panel" id="ledgerPanel">
+      <h2>Idea ledger — your review</h2>
+      <div class="note" style="margin-bottom:14px">Rate each idea and add notes. Minority ideas are listed first. Your saved review is included in the exports.</div>
+      <div id="ledger"></div>
+      <label for="overallComment">Overall reviewer comments</label>
+      <textarea id="overallComment" placeholder="Overall assessment, decisions, next steps…"></textarea>
+      <div style="margin-top:12px;display:flex;align-items:center;gap:14px">
+        <button class="run" id="saveReview" style="margin-top:0">Save review</button>
+        <span id="reviewStatus" class="note" style="margin-top:0"></span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Synthesis</h2>
+      <div id="syntheses" class="synth-grid"></div>
+    </div>
+
+    <div class="panel hidden" id="compositePanel">
+      <h2>Emergent composites (cross-model)</h2>
+      <div class="note" style="margin-bottom:10px">Combinations spanning multiple models that no single model proposed whole — by design not traceable to one member, and not fact-checked. Evaluate independently.</div>
+      <div id="composites"></div>
+    </div>
+
+    <div class="panel" id="bestRawPanel">
+      <h2>Top-ranked member answer</h2>
+      <div id="bestRaw"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Member answers (independent)</h2>
+      <div class="tabs" id="memberTabs"></div>
+      <div class="md" id="memberBody"></div>
+    </div>
+  </div>
+</div>
+
+<script src="/static/render.js"></script>
+<script src="/static/models.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const pct = (x) => `${Math.round(100 * x)}%`;
+// esc + renderMarkdown come from /static/render.js
+
+// ---- theme toggle (persisted) ----
+function applyTheme(t) {
+  document.documentElement.setAttribute("data-theme", t);
+  $("themeToggle").textContent = t === "dark" ? "🌙 Dark" : "☀ Light";
+  localStorage.setItem("council-theme", t);
+}
+$("themeToggle").onclick = () =>
+  applyTheme(document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark");
+applyTheme(localStorage.getItem("council-theme") || "light");
+
+// seats + chairman: provider/model pickers (models.js)
+let seatRows = [];
+let chairmanRow = { provider: "openrouter", model: "", online: false };
+function renderSeats() {
+  $("seatRows").innerHTML = seatRows.map((r, i) => `<div class="seat-row" data-i="${i}">${pickerHtml("seat", r)}
+    ${r.provider === "openrouter"
+      ? `<label class="verdict"><input type="checkbox" class="seat-web" ${r.online ? "checked" : ""}> 🌐 web</label>`
+      : `<span class="model-id" style="margin:0;white-space:nowrap">web N/A</span>`}
+    <a class="lens-rm seat-rm" title="remove seat">×</a></div>`).join("");
+  $("seatRows").querySelectorAll(".seat-row").forEach((row) => {
+    const i = +row.dataset.i;
+    bindPicker(row, "seat", seatRows[i], renderSeats);
+    const web = row.querySelector(".seat-web");
+    if (web) web.onchange = (e) => (seatRows[i].online = e.target.checked);
+    row.querySelector(".seat-rm").onclick = () => { seatRows.splice(i, 1); renderSeats(); };
+  });
+}
+function renderChairman() {
+  $("chairmanRow").innerHTML = `<div class="seat-row">${pickerHtml("chair", chairmanRow)}</div>`;
+  bindPicker($("chairmanRow"), "chair", chairmanRow, renderChairman);
+}
+$("addSeat").onclick = () => { seatRows.push({ provider: "openrouter", model: "", online: false }); renderSeats(); };
+function buildSeats() { return seatRows.map(specOf).filter(Boolean); }
+
+// briefing documents
+let briefs = [];
+function renderBriefs() {
+  $("briefList").innerHTML = briefRowsHtml(briefs);
+  $("briefList").querySelectorAll(".brief-rm").forEach((a) => (a.onclick = () => { briefs.splice(+a.dataset.i, 1); renderBriefs(); }));
+}
+$("briefFiles").onchange = async (e) => {
+  if (!e.target.files.length) return;
+  $("error").textContent = "";
+  try {
+    const r = await uploadBriefs(e.target.files);
+    briefs.push(...(r.briefs || []));
+    if ((r.errors || []).length) $("error").textContent = "Could not read: " + r.errors.join("; ");
+    renderBriefs();
+  } catch (err) { $("error").textContent = "Failed to read briefing document(s): " + err; }
+  e.target.value = "";
+};
+
+async function loadHistory() {
+  try {
+    const { runs } = await (await fetch("/api/runs")).json();
+    if (!runs.length) { $("historyList").innerHTML = '<div class="note">No saved runs yet.</div>'; return; }
+    $("historyList").innerHTML = runs.map((r) => {
+      const date = new Date(r.mtime * 1000).toLocaleString();
+      const gaps = Object.entries(r.gaps || {}).map(([m, g]) => `${m} ${Math.round(g * 100)}%`).join(" · ");
+      const cost = r.cost_usd != null ? ` · $${r.cost_usd.toFixed(2)}` : "";
+      const rev = r.reviewed ? " · reviewed ✓" : "";
+      return `<div class="hrow" data-id="${r.id}">
+        <span class="hprompt">${esc(r.prompt.slice(0, 100)) || "(untitled)"}</span>
+        <span class="hmeta">${esc(gaps)} · ${r.seats.length} seats${cost}${rev} · ${date}</span></div>`;
+    }).join("");
+    document.querySelectorAll("#historyList .hrow").forEach((el) => (el.onclick = () => openRun(el.dataset.id)));
+  } catch (e) {
+    $("historyList").innerHTML = '<div class="err">Could not load history.</div>';
+  }
+}
+
+async function openRun(id) {
+  $("error").textContent = "";
+  try {
+    const { result } = await (await fetch(`/api/runs/${id}`)).json();
+    render(result, id);
+    $("results").scrollIntoView({ behavior: "smooth" });
+  } catch (e) {
+    $("error").textContent = "Could not open run: " + e;
+  }
+}
+
+async function loadConfig() {
+  const c = await (await fetch("/api/config")).json();
+  seatRows = c.seats.map(providerOf);
+  chairmanRow = providerOf(c.chairman);
+  renderSeats();
+  renderChairman();
+  const badge = $("modeBadge");
+  badge.textContent = c.demo ? "DEMO — no keys" : "LIVE";
+  badge.className = "badge " + (c.demo ? "demo" : "live");
+  if (!c.demo) {
+    $("keys").innerHTML = "Keys: " + Object.entries(c.keys)
+      .map(([k, v]) => `<span class="${v ? "ok" : "no"}">${v ? "✓" : "✗"} ${k}</span>`)
+      .join(" &nbsp; ") + " &nbsp;·&nbsp; Ollama seats need a local server.";
+  }
+}
+
+function survivalRow(mode, s) {
+  const gap = s.shared_rate - s.unique_rate;
+  const bar = (rate, col) => `<div class="bar"><span style="width:${100 * rate}%;background:${col}"></span></div>`;
+  return `<tr>
+    <td><strong>${mode}</strong></td>
+    <td><span class="pct">${pct(s.unique_rate)}</span> <span class="model-id">(${s.unique_survived}/${s.unique_total})</span>${bar(s.unique_rate, "var(--accent)")}</td>
+    <td><span class="pct">${pct(s.shared_rate)}</span> <span class="model-id">(${s.shared_survived}/${s.shared_total})</span>${bar(s.shared_rate, "var(--muted)")}</td>
+    <td class="${gap <= 0.15 ? "gap-good" : "gap-bad"} pct">${pct(gap)}</td>
+  </tr>`;
+}
+
+function renderCost(cost) {
+  if (!cost || !cost.per_model || !cost.per_model.length) {
+    $("costPanel").classList.add("hidden");
+    return;
+  }
+  $("costPanel").classList.remove("hidden");
+  const partial = cost.cost_partial ? " (partial — some models unpriced)" : "";
+  const rows = cost.per_model.map((r) => {
+    const c = r.cost_usd != null ? "$" + r.cost_usd.toFixed(4) : "free / n/a";
+    const toks = (r.prompt_tokens + r.completion_tokens).toLocaleString();
+    return `<tr><td class="model-id" style="margin:0">${r.model}</td><td>${r.calls}</td><td class="pct">${toks}</td><td class="pct">${c}</td></tr>`;
+  }).join("");
+  $("cost").innerHTML = `<table class="survival">
+    <tr><th>Model</th><th>Calls</th><th>Tokens</th><th>Cost</th></tr>${rows}
+    <tr><td><strong>Total</strong></td><td></td>
+        <td class="pct"><strong>${cost.total_tokens.toLocaleString()}</strong></td>
+        <td class="pct"><strong>$${cost.total_cost_usd.toFixed(4)}${partial}</strong></td></tr>
+  </table>`;
+}
+
+function renderLedger(data, jobId) {
+  const ledger = (data.ledger || []).slice().sort((a, b) =>
+    a.is_unique === b.is_unique ? b.merit - a.merit : (a.is_unique ? -1 : 1));
+  if (!ledger.length) { $("ledgerPanel").classList.add("hidden"); return; }
+  $("ledgerPanel").classList.remove("hidden");
+  const review = data.review || { ideas: {}, overall: "" };
+  const ideasR = review.ideas || {};
+  $("ledger").innerHTML = ledger.map((c) => {
+    const r = ideasR[c.id] || {};
+    const who = [...new Set(c.source_labels || [])].join(", ");
+    const tag = c.is_unique
+      ? '<span class="tag minority" title="raised by only one model — uncorroborated">single-source</span>'
+      : '<span class="tag">shared</span>';
+    const radio = (val, label) =>
+      `<label class="verdict"><input type="radio" name="v_${c.id}" value="${val}" ${r.verdict === val ? "checked" : ""}> ${label}</label>`;
+    return `<div class="idea" data-id="${c.id}">
+      <div class="idea-head">${tag}<span class="model-id" style="margin:0">merit ${c.merit} · ${esc(who)}</span></div>
+      <div class="idea-text">${esc(c.summary)}</div>
+      <div class="verdicts">${radio("adopt", "Adopt")}${radio("explore", "Explore")}${radio("reject", "Reject")}</div>
+      <textarea class="idea-comment" placeholder="Comment (optional)">${esc(r.comment || "")}</textarea>
+    </div>`;
+  }).join("");
+  $("overallComment").value = review.overall || "";
+  $("reviewStatus").textContent = "";
+  $("saveReview").onclick = () => saveReview(jobId);
+}
+
+async function saveReview(jobId) {
+  const ideas = {};
+  document.querySelectorAll("#ledger .idea").forEach((div) => {
+    const checked = div.querySelector("input[type=radio]:checked");
+    const comment = div.querySelector(".idea-comment").value.trim();
+    if (checked || comment) ideas[div.dataset.id] = { verdict: checked ? checked.value : "", comment };
+  });
+  $("reviewStatus").textContent = "Saving…";
+  try {
+    const res = await fetch(`/api/run/${jobId}/review`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ overall: $("overallComment").value.trim(), ideas }),
+    });
+    $("reviewStatus").textContent = res.ok ? "Saved ✓ — now included in exports" : "Save failed";
+  } catch (e) { $("reviewStatus").textContent = "Save failed: " + e; }
+}
+
+function renderComposites(composites) {
+  if (!composites.length) { $("compositePanel").classList.add("hidden"); return; }
+  $("compositePanel").classList.remove("hidden");
+  $("composites").innerHTML = composites.map((c) =>
+    `<div style="margin-bottom:12px"><span class="tag">${esc(c.verdict || c.value || "")}</span> ${esc(c.summary)}
+     <div class="model-id" style="margin:4px 0 0">combines: ${esc((c.source_models || []).join(", "))}${c.judge_note ? " · judge: " + esc(c.judge_note) : ""}</div></div>`).join("");
+}
+
+function render(data, jobId) {
+  $("exMd").onclick = () => (window.location = `/api/run/${jobId}/export.md`);
+  $("exDocx").onclick = () => (window.location = `/api/run/${jobId}/export.docx`);
+  renderLedger(data, jobId);
+
+  const modes = Object.keys(data.results);
+  $("survival").innerHTML = `<table class="survival">
+    <tr><th>Mode</th><th>Minority ideas kept</th><th>Consensus ideas kept</th><th>Gap</th></tr>
+    ${modes.map((m) => survivalRow(m, data.results[m].survival)).join("")}
+  </table>`;
+
+  renderCost(data.cost);
+  renderComposites(data.composites || []);
+
+  const grid = $("syntheses");
+  grid.className = "synth-grid" + (modes.length > 1 ? " two" : "");
+  grid.innerHTML = modes.map((m) => {
+    const r = data.results[m];
+    const unsup = r.unsupported_claims || [];
+    const warn = unsup.length
+      ? `<div class="warn-claims">⚠ Not traceable to any member: ${unsup.map(esc).join("; ")}</div>` : "";
+    const ver = r.verification || [];
+    const factcheck = ver.length ? `<div class="factcheck"><table class="survival">
+        <tr><th>Claim</th><th>Verdict</th><th>Note</th></tr>
+        ${ver.map((v) => `<tr><td>${esc(v.claim)}</td><td class="verdict-${esc(v.verdict)}">${esc(v.verdict)}</td><td class="model-id" style="margin:0">${esc(v.note)}</td></tr>`).join("")}
+      </table></div>` : "";
+    return `<div class="synth">
+      <h3>${m}<span class="tag">${m === "preserving" ? "ledger-based" : "peer-review blend"}</span></h3>
+      ${warn}<div class="md">${renderMarkdown(r.synthesis)}</div>${factcheck}
+    </div>`;
+  }).join("");
+
+  if (data.best_raw) {
+    $("bestRawPanel").classList.remove("hidden");
+    $("bestRaw").innerHTML = `<div class="model-id">${data.best_raw.label} — ${data.best_raw.model}</div>
+      <div class="caution">Peer-voted as strongest; not fact-checked — treat specific claims (identifiers, numbers, dates) as unverified.</div>
+      <div class="md">${renderMarkdown(data.best_raw.text)}</div>`;
+  } else $("bestRawPanel").classList.add("hidden");
+
+  const tabs = $("memberTabs");
+  tabs.innerHTML = data.members.map((m, i) => {
+    const mark = m.status && m.status !== "ok" ? " ⚠" : "";
+    return `<div class="tab${i === 0 ? " active" : ""}" data-i="${i}">${m.label}${mark}</div>`;
+  }).join("");
+  const show = (i) => {
+    const m = data.members[i];
+    const st = m.status && m.status !== "ok" ? ` · ${m.status}` : "";
+    $("memberBody").innerHTML = `<div class="model-id">${m.model}${st}</div>` +
+      (m.ok ? renderMarkdown(m.text) : `<p style="color:var(--bad)">FAILED: ${m.error}</p>`);
+    [...tabs.children].forEach((t, j) => t.classList.toggle("active", i === j));
+  };
+  [...tabs.children].forEach((t) => (t.onclick = () => show(+t.dataset.i)));
+  if (data.members.length) show(0);
+
+  $("results").classList.remove("hidden");
+}
+
+async function poll(id) {
+  while (true) {
+    const job = await (await fetch(`/api/run/${id}`)).json();
+    if (job.status === "running") {
+      $("statusText").textContent = job.label || job.stage || "working…";
+      await new Promise((r) => setTimeout(r, 1000));
+      continue;
+    }
+    return job;
+  }
+}
+
+async function run() {
+  $("error").textContent = "";
+  $("results").classList.add("hidden");
+  const prompt = $("prompt").value.trim();
+  if (!prompt) { $("error").textContent = "Enter a prompt first."; return; }
+  const modes = [];
+  if ($("m-baseline").checked) modes.push("baseline");
+  if ($("m-preserving").checked) modes.push("preserving");
+  if (!modes.length) { $("error").textContent = "Select at least one mode."; return; }
+
+  const problem = seatRows.map((r, i) => pickerProblem(r, `Seat ${i + 1}`)).concat([pickerProblem(chairmanRow, "Chairman")]).find(Boolean);
+  if (problem) { $("error").textContent = problem; return; }
+
+  $("runBtn").disabled = true;
+  $("status").classList.add("show");
+  $("statusText").textContent = "Starting…";
+  try {
+    const body = {
+      prompt,
+      seats: buildSeats(),
+      chairman: specOf(chairmanRow),
+      modes,
+      briefs: briefs.map((b) => ({ name: b.name, text: b.text })),
+      verify: $("verifyToggle").checked,
+      compose: $("composeToggle").checked,
+    };
+    const { id } = await (await fetch("/api/run", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+    })).json();
+    const job = await poll(id);
+    if (job.status === "error") $("error").textContent = "Run failed — " + job.error;
+    else { render(job.result, id); loadHistory(); }
+  } catch (e) {
+    $("error").textContent = "Request failed: " + e;
+  } finally {
+    $("runBtn").disabled = false;
+    $("status").classList.remove("show");
+  }
+}
+
+$("runBtn").onclick = run;
+$("refreshHistory").onclick = loadHistory;
+loadConfig();
+loadModels($("modelsStatus")).then(() => { renderSeats(); renderChairman(); });  // strict selects need the lists
+loadHistory();
+</script>
+</body>
+</html>
