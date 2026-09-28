@@ -97,6 +97,30 @@ Seat and role strings are then whatever your client understands.
 
 ## How the council works
 
+```mermaid
+flowchart TB
+    Q([Question + optional briefing documents])
+    subgraph S["1 · Independent answers, blind to each other"]
+        direction LR
+        D[Seat …]
+        C[Seat C]
+        B[Seat B]
+        A[Seat A]
+    end
+    Q --> D & C & B & A
+    D & C & B & A --> X["2 · Clerk extracts atomic idea cards, each tagged with its author"]
+    X --> L[("Shared idea ledger<br/>duplicates clustered · each idea merit-ranked on its own quality<br/>minority ideas (one author) vs shared ideas")]
+    L --> PP["4 · Preserving<br/>red team marks endangered minority ideas must-include<br/>→ chairman writes from the ledger"]
+    L --> PB["3 · Baseline (Karpathy)<br/>members peer-review each other → chairman blends"]
+    PP --> SP[/Preserving synthesis/]
+    PB --> SB[/Baseline synthesis/]
+    SP --> J["5 · Blind survival judge<br/>which ledger ideas made it into each synthesis?"]
+    SB --> J
+    L -. scored against .-> J
+    J --> G{{"Groupthink gap = consensus kept − minority kept<br/>reported for each mode · lower is better"}}
+    SB & SP -.-> O["Optional passes<br/>faithfulness audit of the chairman · web fact-check<br/>cross-model composites rated by an independent judge"]
+```
+
 1. **Independent answers.** Every seat answers the question blind to the others. A failed seat is captured, not raised, and retried once.
 2. **Shared idea ledger.** A clerk decomposes each answer into atomic ideas tagged with their author, clusters duplicates, and rates each idea on its own merit rather than on how many models raised it. The ledger is built once and both syntheses are scored against it.
 3. **Baseline synthesis.** Members rank each other's answers and the chairman blends them.
@@ -105,6 +129,20 @@ Seat and role strings are then whatever your client understands.
 6. **Optional passes.** A faithfulness audit flags claims the chairman introduced that no member supplied. A web verifier fact-checks specific claims. A composite pass has the chairman propose cross-model combinations that no single member offered, which an independent judge then rates and culls.
 
 Every metric stage runs at temperature zero regardless of the creative temperature, so the gap and the audit trail are comparable between runs. A failed bookkeeping stage degrades the run and records a warning that is shown in the UI. It never aborts the run.
+
+## The advisory board
+
+Same engine, different framing: instead of interchangeable seats, each model answers as a named expert lens with its own persona, and the output is a recommendation that keeps disagreement visible.
+
+```mermaid
+flowchart LR
+    Q([Question + briefing documents<br/>+ optional PubMed / Europe PMC evidence])
+    Q --> R[Regulatory strategy] & B[Biostatistics] & E[Safety and ethics] & Y[Your own lenses …]
+    R & B & E & Y --> L[("Idea ledger<br/>with provenance")]
+    L --> T[Red-team rescue of<br/>minority positions]
+    T --> REC["Board recommendation<br/>with an explicit minority-positions section"]
+    REC --> A["Faithfulness audit · optional web fact-check<br/>· cross-lens composites"]
+```
 
 ## Command line
 
